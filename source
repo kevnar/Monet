@@ -1,0 +1,289 @@
+int gridWidth; //<>//
+int gridHeight;
+int cellSize;
+int totalCells;
+int myCell;
+int myAlpha;
+color myColor;
+Origin[] origins = new Origin[64];
+int frameCount;
+int minSpeed;
+int maxSpeed;
+int maxFrames;
+int changePalette;
+int curPal;
+String palTitle;
+
+void setup() {
+  //frameRate(1);
+  fullScreen(P2D);
+  //size(720 , 945);
+  int resolution = 15; // 1 to 15
+  gridWidth = 16 * resolution;
+  gridHeight = 10 * resolution;
+  cellSize = width / gridWidth;
+  totalCells = gridWidth * gridHeight - 1;
+  myAlpha = 4;
+  curPal = int(random(9));
+
+  minSpeed = 1;
+  maxSpeed = 4;
+  maxFrames = gridWidth / minSpeed;
+  //colorMode(RGB,255);
+  initOrigins();
+
+  grid();
+}
+
+void draw() {
+  frameCount++;
+  if (frameCount % maxFrames == 0) {
+    initOrigins();
+    frameCount = 0;
+    changePalette++;
+    if (changePalette > 2) {
+      curPal = int(random(9));
+      changePalette = 0;
+      textSize(48);
+      fill(255);
+      text(palTitle, 100, 100);
+    }
+  }
+  doVoronoi();
+  moveOrigins();
+}
+
+void initOrigins() {
+  //initialize Origins
+  for (int i = 0; i < origins.length; i++) {
+    myCell = int(random(totalCells));
+
+    myColor = getColor();    
+
+    int d = int(random(8));
+    if (brightness(myColor) > 250) d = int(random(4, 6)); 
+    int mySpeed = int(random(minSpeed, maxSpeed));
+    origins[i] = new Origin(myCell, myColor, d, mySpeed);
+  }
+}
+
+color getColor() {
+
+  if (curPal == 0) {
+    float red = 100.0 - random(15.0, 20.0);
+    float blu = red - random(15.0, 20.0);
+    float grn = blu + ((red - blu) / 2.0);
+
+    red *= 0.01;
+    grn *= 0.01;
+    blu *= 0.01;
+
+    int r = int(255 * red);
+    int g = int(255 * grn);
+    int b = int(255 * blu);
+
+    palTitle = "dust";
+    return color(r, g, b, myAlpha);
+  } else if (curPal == 1) {
+
+    int r = int(224.3 + (9.6 * random(-3, 3)));
+    int g = int(193.1 + (17.0 * random(-3, 3)));
+    int b = int(177.6 + (21.0 * random(-3, 3)));
+    palTitle = "flesh";
+
+    return color(r, g, b, myAlpha);
+  } else if (curPal == 2) {
+    int r = int(random(0, 255));
+    int g = int(random(0, 255));
+    int b = int(random(0, 255));
+    palTitle = "random";
+
+    return color(r, g, b, myAlpha);
+  } else if (curPal == 3) {
+    int r = int(random(0, 255));
+    int g = int(random(0, 255));
+    int b = int(random(0, 255));
+    palTitle = "rain";
+
+    return color(r, g, 255, myAlpha);
+  } else if (curPal == 4) {
+    color col;
+    int r = int(random(0, 255));
+    int g = int(random(0, 255));
+    int b = int(random(0, 255));
+
+    color black = color(0, myAlpha);
+    color maroon = color(128, 0, 0, myAlpha);
+    col = color(r, 255, b, myAlpha);
+
+    if (random(100) < 10)  col = lerpColor(col, black, 0.25);
+    if (random(100) < 10)  col = lerpColor(col, maroon, 0.25);
+    palTitle = "glade";
+
+    return col;
+  } else if (curPal == 5) {
+    int r = int(random(0, 32));
+    int g = int(random(0, 32));
+    int b = int(random(0, 127));
+    palTitle = "deep";
+
+    return color(r, g, b, myAlpha);
+  } else if (curPal == 6) {
+    //Lesley's spice tones
+    color col;
+    int x = int(random(5));
+    if (x == 0) {
+      col = color(247, 239, 212, myAlpha);
+    } else if (x == 1) {
+      col = color(250, 221, 175, myAlpha);
+    } else if (x == 2) {
+      col = color(235, 113, 47, myAlpha);
+    } else if (x == 3) {
+      col = color(145, 55, 27, myAlpha);
+    } else if (x == 4) {
+      col = color(71, 44, 37, myAlpha);
+    } else {
+      col = color(212, 194, 178, myAlpha);
+    } 
+    palTitle = "spice";
+
+    return col;
+  } else if (curPal == 7) {
+    color col;
+    color hiCol = color(255, 219, 172, myAlpha);
+    color loCol = color(141, 85, 36, myAlpha);
+    color pink = color(255, 0, 255, myAlpha);
+    color white = color(255, myAlpha);
+    color red = color(255, 0, 0, myAlpha);
+    color yellow = color(255, 255, 0, myAlpha);
+    color black = color(0, myAlpha);
+    float x = random(0, 1.0);
+
+    col = lerpColor(loCol, hiCol, x);
+    if (random(100) < 10)  col = lerpColor(col, pink, 0.2);
+    if (random(100) < 5)  col = lerpColor(col, white, 0.66);
+    if (random(100) < 2)  col = lerpColor(col, red, 0.66);
+    if (random(100) < 1)  col = lerpColor(col, yellow, 0.33);
+    if (random(100) < 1)  col = lerpColor(col, black, 0.85);
+    palTitle = "eros";
+
+    return col;
+  }
+
+  palTitle = "smoke";
+  return color(random(255), myAlpha);
+}
+
+void moveOrigins() {
+  for (int k = 0; k < origins.length; k++) {
+    if (origins[k].dir == 0 || origins[k].dir == 1 || origins[k].dir == 7) {
+      origins[k].index -= gridWidth * origins[k].speed;
+      if (origins[k].index < 0) origins[k].index += totalCells;
+    }
+    if (origins[k].dir == 3 || origins[k].dir == 4 || origins[k].dir == 5) {
+      origins[k].index += gridWidth * origins[k].speed;
+      if (origins[k].index > totalCells) origins[k].index -= totalCells;
+    }
+    if (origins[k].dir == 5 || origins[k].dir == 6 || origins[k].dir == 7) {
+      origins[k].index -= 1 * origins[k].speed;
+      if (origins[k].index < 0) origins[k].index += gridWidth;
+    }
+    if (origins[k].dir == 1 || origins[k].dir == 2 || origins[k].dir == 3) {
+      origins[k].index += 1 * origins[k].speed;
+      if (origins[k].index > gridWidth) origins[k].index -= gridWidth;
+    }
+  }
+}
+
+void doVoronoi() {
+  for (int k = 0; k < totalCells; k++) {
+    int i = k % gridWidth;
+    int j = floor(k / gridWidth);
+    int x = i * cellSize;
+    int y = j * cellSize;
+
+    int p = getNearestOrigin(k);
+    fill(origins[p].col);
+    rect(x, y, cellSize, cellSize);
+  }
+}
+
+void fillOne() {
+  // Pick a random square, and fill it with the color of the nearest origin
+  boolean goodCell = false;
+
+  while (!goodCell) {
+    goodCell = true;
+    myCell = int(random(totalCells));
+
+    for (int k = 0; k < origins.length; k++) {
+      if (myCell == origins[k].index) goodCell = false;
+    }
+  }
+
+  int i = myCell % gridWidth;
+  int j = floor(myCell / gridWidth);
+  int x = i * cellSize;
+  int y = j * cellSize;
+
+  int p = getNearestOrigin(myCell);
+  fill(origins[p].col);
+  rect(x, y, cellSize, cellSize);
+}
+
+int getNearestOrigin(int cell) {
+  //returns the index of the nearest origin to p
+  int bestCell = 0;
+  float bestDistance = 999999.0;
+
+  for (int k = 0; k < origins.length; k++) {
+    float d = getDistanceEuclidian(cell, origins[k].index);
+    if (d < bestDistance) {
+      bestDistance = d;
+      bestCell = k;
+    }
+  }
+
+  return bestCell;
+}
+
+float getDistanceEuclidian(int c1, int c2) {
+  // returns the euclidian distance between centers of cell 1 and cell 2
+
+  float cell1CenterX = ((c1 % gridWidth) * cellSize) + cellSize / 2;
+  float cell1CenterY = (floor((c1 / gridWidth)) * cellSize) + cellSize / 2;
+  float cell2CenterX = ((c2 % gridWidth) * cellSize) + cellSize / 2;
+  float cell2CenterY = (floor((c2 / gridWidth)) * cellSize) + cellSize / 2;
+  float dx = abs(cell1CenterX - cell2CenterX);
+  float dy = abs(cell1CenterY - cell2CenterY);
+  float distance = sqrt(dx * dx + dy * dy);
+
+  return distance;
+}
+
+void grid() {
+  // Draw the grid
+  background(0);
+  noStroke();
+  //stroke(127,127,255);
+  for (int i = 0; i < gridWidth; i++) {
+    for (int j = 0; j < gridHeight; j++) {
+      int index = i + j * gridWidth;
+
+      noFill();
+
+      int x = i * cellSize;
+      int y = j * cellSize;
+
+      rect(x, y, cellSize, cellSize);
+
+      //ellipseMode(CORNER);
+      for (int k = 0; k < origins.length; k++) {
+        if (index == origins[k].index) {
+          fill(origins[k].col);
+          ellipse(x + cellSize / 2, y + cellSize / 2, cellSize * 0.66, cellSize * 0.66);
+        }
+      }
+    }
+  }
+}
